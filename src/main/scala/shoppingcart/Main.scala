@@ -8,47 +8,55 @@ import scala.io.StdIn.readLine
 object Main {
   def main(args: Array[String]): Unit = {
 
+
     //Greet the user and ask for a list of items they want to buy
     val cartInput: String = readLine("Which items do you want to buy?").toUpperCase()
 
-    //count how many of each item there are
-    val countA = cartInput.count(_ == 'A')
-    val countB = cartInput.count(_ == 'B')
-    val countC = cartInput.count(_ == 'C')
-    val countD = cartInput.count(_ == 'D')
+    sealed trait SaleType {
+      def count: Int
 
-    case class Item(count: Int, unitPrice: Int, discountNumber: Int, discountPrice: Int) {
-      //how many discounts do we need to apply?
-      def discountItems: Int = {
-        if (discountNumber > 0) count/discountNumber else 0
-      }
-      //how many single items are there?
-      def singletonItems: Int = {
-        if (discountNumber > 0) count - (discountNumber * (count/discountNumber)) else count
-      }
+      def unitPrice: Int
 
-      //calculate the bundle price for bulk discounts
-      def offerPrice(): Float = {
-        discountItems * discountPrice
-      }
+      def totalPrice: Float
+    }
 
-      //calculate the singleton price where bulk discounts don't apply
-      def singletonPrice(): Float = {
-        singletonItems * unitPrice
-      }
-
+    final case class RegularPrice(count: Int, unitPrice: Int) extends SaleType {
+      //calculate the total price
       def totalPrice(): Float = {
-        offerPrice + singletonPrice
+        count * unitPrice
       }
     }
 
-    //instantiate a new Item for A-D
-    val A = new Item(countA, 50, 3, 130)
-    val B = new Item(countB, 30, 2, 45)
-    val C = new Item(countC, 20, 0,  0)
-    val D = new Item(countD,15, 0, 0)
+    final case class VolumeDiscount(count: Int, unitPrice: Int, volumeRequired: Int, discountPrice: Int) extends SaleType {
+      //how many discounts do we need to apply?
+      def discountItems: Int = {
+        count / volumeRequired
+      }
 
-    println("Cart total is = ", A.totalPrice + B.totalPrice + C.totalPrice + D.totalPrice)
+      //how many single items are there?
+      def singletonItems: Int = {
+        count - (volumeRequired * (count / volumeRequired))
+      }
+
+      def totalPrice(): Float = {
+        (discountItems * discountPrice) + (singletonItems * unitPrice)
+      }
+    }
+
+    val order = List((new VolumeDiscount(cartInput.count(_ == 'A'), 50, 3, 130)),
+      (new VolumeDiscount(cartInput.count(_ == 'B'), 30, 2, 45)),
+      (new RegularPrice(cartInput.count(_ == 'C'), 20)),
+      (new RegularPrice(cartInput.count(_ == 'D'), 15)))
+
+    println("Subtotal")
+    for (i <- order) println(i.totalPrice)
+    val orderTotal = for (i <-order) yield i.totalPrice
+    def sum(list: List[Float]): Float = list match {
+      case Nil => 0
+      case head :: tail => head + sum(tail)
+    }
+
+    println("Order Total Is:", sum(orderTotal))
 
 
     }
