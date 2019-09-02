@@ -33,5 +33,6 @@ object Main extends App {
 
     //create a new cart object to calculate total
     val cart = new Cart(order)
+    cart.printTotal()
 
 }
